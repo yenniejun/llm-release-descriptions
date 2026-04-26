@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.DS_Store
+.ipynb_checkpoints/
+
+# Data artifacts (raw HTML can get big; keep extracted text + features in git)
+data/raw/html/
+*.parquet.bak
+
+# Notebooks output
+notebooks/.ipynb_checkpoints/
