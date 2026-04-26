@@ -247,13 +247,21 @@ def extract_one(client: Anthropic, model: str, launch_id: str,
     if features is None:
         raise RuntimeError(f"No tool_use block returned for {launch_id}")
 
+    # Prefer the date the page itself advertises; fall back to the CSV.
+    page_date = (raw.get("published_date") or "").strip()
+    csv_date = meta["date"]
+    final_date = page_date[:10] if len(page_date) >= 10 else csv_date
+
     return {
         "launch_id": launch_id,
         "domain": meta["domain"],
         "company": meta["company"],
         "product_family": meta.get("product_family", ""),
         "product_name": meta["product_name"],
-        "date": meta["date"],
+        "date": final_date,
+        "csv_date": csv_date,
+        "page_date": page_date,
+        "date_source": "page" if final_date == page_date[:10] and page_date else "csv",
         "url_used": raw.get("url_used", ""),
         "source": raw.get("source", ""),
         "word_count": raw.get("word_count", 0),

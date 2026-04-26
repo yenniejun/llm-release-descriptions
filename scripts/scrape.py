@@ -76,14 +76,16 @@ def fetch_wayback(url: str, target_date: str) -> tuple[str, str] | None:
         return None
 
 
-def extract_text(html: str, url: str) -> tuple[str, str]:
+def extract_text(html: str, url: str) -> tuple[str, str, str]:
     extracted = trafilatura.extract(
         html, url=url, include_comments=False, include_tables=False,
         favor_recall=True, output_format="txt"
     ) or ""
     meta = trafilatura.extract_metadata(html)
     title = (meta.title if meta and meta.title else "") or ""
-    return title, extracted.strip()
+    # trafilatura returns ISO-ish date when found; "" otherwise
+    pub = (meta.date if meta and meta.date else "") or ""
+    return title, extracted.strip(), pub
 
 
 def looks_like_failure(text: str, url_used: str) -> bool:
@@ -122,15 +124,15 @@ def scrape_one(row: dict) -> dict:
             out["live_error"] = str(e)
 
     # Extract & decide if we need Wayback
-    title, text = ("", "")
+    title, text, pub_date = ("", "", "")
     if html:
-        title, text = extract_text(html, url_used or url)
+        title, text, pub_date = extract_text(html, url_used or url)
     if not text or looks_like_failure(text, url_used or url):
         wb = fetch_wayback(url, date) if url else None
         if wb:
             url_used, html = wb
             source = "wayback"
-            title, text = extract_text(html, url_used)
+            title, text, pub_date = extract_text(html, url_used)
 
     if not text:
         out.update(status="failed", error="no_text_extracted",
@@ -147,6 +149,8 @@ def scrape_one(row: dict) -> dict:
         title=title,
         text=text,
         word_count=len(text.split()),
+        published_date=pub_date,           # from page metadata; "" if missing
+        csv_date=date,                     # the date in our master CSV
     )
     return out
 
